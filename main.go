@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"net/http"
 	"os"
@@ -8,10 +9,14 @@ import (
 
 	"github.com/gorilla/websocket"
 	"github.com/urfave/cli/v2"
+
+	ctxlog "github.com/Koyomikun/gobot/utils/logger"
+	logger "github.com/Koyomikun/gobot/utils/logger/beego"
 )
 
 var (
 	ip, port string
+	logPath  string
 )
 
 func main() {
@@ -19,6 +24,12 @@ func main() {
 		Name:    "kbot",
 		Version: "v1.0.0.1",
 		Flags: []cli.Flag{
+			&cli.StringFlag{
+				Name:        "log-path",
+				Aliases:     []string{"l"},
+				Usage:       "log file path",
+				Destination: &logPath,
+			},
 			&cli.StringFlag{
 				Name:        "ip",
 				Usage:       "binding ip address",
@@ -34,6 +45,13 @@ func main() {
 			},
 		},
 		Action: func(c *cli.Context) error {
+			// init logger
+			ctx := context.WithValue(context.Background(), ctxlog.RequestID, ctxlog.GetUUID())
+			bLogger := logger.NewLogger(logPath)
+			ctxlog.SetLogger(bLogger)
+
+			ctxlog.Infof(ctx, "start %s", c.App.Name)
+
 			// init websocket
 			var upgrade = websocket.Upgrader{
 				CheckOrigin: func(r *http.Request) bool {
