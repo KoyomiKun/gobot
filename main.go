@@ -60,7 +60,7 @@ func main() {
 				log.Errorf("fail init config: %v", err)
 				return err
 			}
-			var config *Config
+			config := &Config{}
 			err = json.Unmarshal(fileBytes, config)
 			if err != nil {
 				log.Errorf("fail init config: %v", err)
