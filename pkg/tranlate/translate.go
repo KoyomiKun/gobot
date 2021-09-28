@@ -50,7 +50,10 @@ func translate(origin string) string {
 		go func(url, locale string, resChan chan<- string) {
 			var retSb strings.Builder
 
-			resp, err := http.Get(url)
+			client := http.Client{
+				Timeout: 2 * time.Second,
+			}
+			resp, err := client.Get(url)
 			if err != nil {
 				log.Errorf("fail getting url %s: %v", url, err)
 				return

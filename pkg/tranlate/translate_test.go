@@ -6,5 +6,5 @@ import (
 )
 
 func TestTranslate(t *testing.T) {
-	fmt.Println(translate("来把"))
+	fmt.Println(translate("send"))
 }
