@@ -14,6 +14,7 @@ import (
 
 	_ "github.com/Koyomikun/gobot/pkg/searcher"
 	_ "github.com/Koyomikun/gobot/pkg/setu"
+	_ "github.com/Koyomikun/gobot/pkg/tranlate"
 )
 
 type Config struct {
