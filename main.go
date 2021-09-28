@@ -1,88 +1,100 @@
 package main
 
 import (
-	"context"
+	"encoding/json"
 	"fmt"
-	"net/http"
+	"io/ioutil"
 	"os"
-	"strconv"
 
-	"github.com/gorilla/websocket"
+	log "github.com/sirupsen/logrus"
+	easy "github.com/t-tomalak/logrus-easy-formatter"
 	"github.com/urfave/cli/v2"
+	zero "github.com/wdvxdr1123/ZeroBot"
+	"github.com/wdvxdr1123/ZeroBot/driver"
 
-	ctxlog "github.com/Koyomikun/gobot/utils/logger"
-	logger "github.com/Koyomikun/gobot/utils/logger/beego"
+	_ "github.com/Koyomikun/gobot/pkg/searcher"
+	_ "github.com/Koyomikun/gobot/pkg/setu"
 )
 
+type Config struct {
+	Token      string   `json:"token,omitempty"`
+	SuperUsers []string `json:"super_users,omitempty"`
+}
+
 var (
-	ip, port string
-	logPath  string
+	cfgPath string
+	addr    string
 )
 
 func main() {
-	app := &cli.App{
-		Name:    "kbot",
-		Version: "v1.0.0.1",
+	app := cli.App{
+		Name:  "gobot",
+		Usage: "golang bot based on ZeroBot.",
 		Flags: []cli.Flag{
 			&cli.StringFlag{
-				Name:        "log-path",
-				Aliases:     []string{"l"},
-				Usage:       "log file path",
-				Destination: &logPath,
+				Name:        "cfg",
+				Aliases:     []string{"c"},
+				Usage:       "path to json configuration.",
+				Value:       "./cfg/config.json",
+				Destination: &cfgPath,
 			},
 			&cli.StringFlag{
-				Name:        "ip",
-				Usage:       "binding ip address",
-				Value:       "127.0.0.1",
-				Destination: &ip,
-			},
-			&cli.StringFlag{
-				Name:        "port",
-				Aliases:     []string{"p"},
-				Usage:       "binding port",
-				Value:       "8080",
-				Destination: &port,
+				Name:        "addr",
+				Aliases:     []string{"a"},
+				Usage:       "address the bot listen on.",
+				Value:       "127.0.0.1:6700",
+				Destination: &addr,
 			},
 		},
 		Action: func(c *cli.Context) error {
 			// init logger
-			ctx := context.WithValue(context.Background(), ctxlog.RequestID, ctxlog.GetUUID())
-			bLogger := logger.NewLogger(logPath)
-			ctxlog.SetLogger(bLogger)
-
-			ctxlog.Infof(ctx, "start %s", c.App.Name)
-
-			// init websocket
-			var upgrade = websocket.Upgrader{
-				CheckOrigin: func(r *http.Request) bool {
-					return true
-				},
-			}
-			http.HandleFunc("/cqhttp/ws", func(rw http.ResponseWriter, r *http.Request) {
-				selfId, err := strconv.Atoi(r.Header.Get("X-Self-ID"))
-				if err != nil {
-					fmt.Printf("fail to convert self id: %v \n", err)
-					return
-				}
-				role := r.Header.Get("X-Client-Role")
-				host := r.Header.Get("Host")
-				fmt.Printf("%d %s %s \n", selfId, role, host)
-				conn, err := upgrade.Upgrade(rw, r, nil)
-				if err != nil {
-					fmt.Printf("fail to start connection \n")
-				}
-				defer conn.Close()
-				// read data
-				_, data, err := conn.ReadMessage()
-				if err != nil {
-					fmt.Printf("fail to read data from connection \n")
-					return
-				}
-				fmt.Printf("Read data: %s \n", data)
+			log.SetFormatter(&easy.Formatter{
+				TimestampFormat: "2006-01-02 15:04:05",
+				LogFormat:       "[zero][%time%][%lvl%]: %msg% \n",
 			})
-			return http.ListenAndServe(fmt.Sprintf("%s:%s", ip, port), nil)
+			log.SetLevel(log.DebugLevel)
+
+			// init config
+			fileBytes, err := readFile(cfgPath)
+			if err != nil {
+				log.Errorf("fail init config: %v", err)
+				return err
+			}
+			var config *Config
+			err = json.Unmarshal(fileBytes, config)
+			if err != nil {
+				log.Errorf("fail init config: %v", err)
+				return err
+			}
+
+			log.Infof("start %s", c.App.Name)
+
+			// run zerobot
+			zero.Run(zero.Config{
+				NickName:      []string{"bot"},
+				CommandPrefix: ".",
+				SuperUsers:    config.SuperUsers,
+				Driver: []zero.Driver{
+					driver.NewWebSocketClient(fmt.Sprintf("ws://%s/", addr), config.Token),
+				},
+			})
+			select {}
 		},
 	}
 	app.Run(os.Args)
 
+}
+
+func readFile(path string) ([]byte, error) {
+	f, err := os.Open(path)
+	if err != nil {
+		log.Errorf("fail reading file :%v", err)
+		return nil, err
+	}
+	fileBytes, err := ioutil.ReadAll(f)
+	if err != nil {
+		log.Errorf("fail reading file :%v", err)
+		return nil, err
+	}
+	return fileBytes, nil
 }

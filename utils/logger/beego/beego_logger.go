@@ -34,7 +34,7 @@ func NewLogger(path string) ctxlog.Interface {
 		if err := beeLogger.SetLogger(
 			logs.AdapterFile,
 			fmt.Sprintf(
-				`{"filename": %s, "level":7, "daily":true, "maxdays":30, "perm":"0666"}`,
+				`{"filename": "%s", "level":7, "daily":true, "maxdays":30, "perm":"0666"}`,
 				path,
 			)); err != nil {
 			panic(fmt.Sprintf("fail to set log: %v", err))
