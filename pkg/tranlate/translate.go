@@ -53,7 +53,6 @@ func translate(origin string) string {
 			resp, err := http.Get(url)
 			if err != nil {
 				log.Errorf("fail getting url %s: %v", url, err)
-				close(resChan)
 				return
 			}
 			defer resp.Body.Close()
@@ -88,10 +87,7 @@ func translate(origin string) string {
 loop:
 	for i := 0; i < len(localeToCh); i++ {
 		select {
-		case res, ok := <-resChan:
-			if !ok {
-				break loop
-			}
+		case res := <-resChan:
 			retSb.WriteString(res)
 			if i != len(localeToCh)-1 {
 				retSb.WriteByte('\n')
