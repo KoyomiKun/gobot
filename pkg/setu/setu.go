@@ -55,8 +55,8 @@ type Data struct {
 }
 
 type Resp struct {
-	Err  string `json:"error,omitempty"`
-	Data *Data  `json:"data,omitempty"`
+	Err  string  `json:"error,omitempty"`
+	Data []*Data `json:"data,omitempty"`
 }
 
 func getSetu(keyword string) *Data {
@@ -92,5 +92,5 @@ func getSetu(keyword string) *Data {
 		log.Errorf("fail getting setu: %s", respBody.Err)
 		return nil
 	}
-	return respBody.Data
+	return respBody.Data[0]
 }
