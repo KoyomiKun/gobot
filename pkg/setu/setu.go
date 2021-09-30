@@ -1,12 +1,11 @@
 package setu
 
 import (
-	"context"
 	"encoding/json"
 	"io/ioutil"
 	"net/http"
 
-	"github.com/Koyomikun/gobot/utils/logger"
+	log "github.com/sirupsen/logrus"
 	zero "github.com/wdvxdr1123/ZeroBot"
 	"github.com/wdvxdr1123/ZeroBot/extension"
 	"github.com/wdvxdr1123/ZeroBot/message"
@@ -18,12 +17,10 @@ const (
 
 func init() {
 	zero.OnCommand("色图").Handle(func(ctx *zero.Ctx) {
-		rctx := context.WithValue(context.Background(), logger.RequestID, logger.GetUUID())
-
 		var cmd extension.CommandModel
 		err := ctx.Parse(&cmd)
 		if err != nil {
-			logger.Errorf(rctx, "fail parse ctx: %s", ctx.Event.RawMessage)
+			log.Errorf("fail parse ctx: %s", ctx.Event.RawMessage)
 			return
 		}
 
@@ -32,7 +29,7 @@ func init() {
 			return
 		}
 
-		setu := getSetu(rctx, cmd.Args)
+		setu := getSetu(cmd.Args)
 		if setu == nil {
 			return
 		}
@@ -62,13 +59,13 @@ type Resp struct {
 	Data *Data  `json:"data,omitempty"`
 }
 
-func getSetu(ctx context.Context, keyword string) *Data {
+func getSetu(keyword string) *Data {
 
 	client := &http.Client{}
 
 	req, err := http.NewRequest(http.MethodGet, baseUrl, nil)
 	if err != nil {
-		logger.Errorf(ctx, "fail getting setu: %v", err)
+		log.Errorf("fail getting setu: %v", err)
 		return nil
 	}
 	query := req.URL.Query()
@@ -78,7 +75,7 @@ func getSetu(ctx context.Context, keyword string) *Data {
 
 	resp, err := client.Do(req)
 	if err != nil {
-		logger.Errorf(ctx, "fail getting setu: %v", err)
+		log.Errorf("fail getting setu: %v", err)
 		return nil
 	}
 	defer resp.Body.Close()
@@ -87,12 +84,12 @@ func getSetu(ctx context.Context, keyword string) *Data {
 	respBody := Resp{}
 	err = json.Unmarshal(respBytes, &respBody)
 	if err != nil {
-		logger.Errorf(ctx, "fail unmarshaling setu: %v", err)
+		log.Errorf("fail unmarshaling setu: %v", err)
 		return nil
 	}
 
 	if respBody.Err != "" {
-		logger.Errorf(ctx, "fail getting setu: %s", respBody.Err)
+		log.Errorf("fail getting setu: %s", respBody.Err)
 		return nil
 	}
 	return respBody.Data
