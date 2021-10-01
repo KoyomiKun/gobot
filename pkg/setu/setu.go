@@ -53,11 +53,12 @@ func parseSetu(ctx *zero.Ctx, r18 bool) {
 	err := ctx.Parse(&cmd)
 	if err != nil {
 		log.Errorf("fail parse ctx: %s", ctx.Event.RawMessage)
+		ctx.Send(message.Text("命令解析出错，请联系管理员"))
 		return
 	}
 
 	if cmd.Args == "" {
-		ctx.Send("请附带关键字参数")
+		ctx.Send(message.Text("请附带关键字参数"))
 		return
 	}
 
