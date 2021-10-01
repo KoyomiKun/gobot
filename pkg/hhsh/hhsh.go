@@ -23,9 +23,7 @@ type Tran struct {
 	Name  string
 	Trans []string
 }
-type Resp struct {
-	Trans []*Tran
-}
+type Resp []*Tran
 
 func init() {
 	zero.OnCommand("好好说话").Handle(func(ctx *zero.Ctx) {
@@ -59,7 +57,7 @@ func init() {
 			return
 		}
 		var retSb strings.Builder
-		for _, v := range respRes.Trans {
+		for _, v := range respRes {
 			retSb.WriteString(fmt.Sprintf(transFormat, v.Name, strings.Join(v.Trans, ",")))
 		}
 		ctx.Send(message.Text(retSb.String()))
