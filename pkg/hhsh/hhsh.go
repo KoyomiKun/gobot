@@ -42,12 +42,14 @@ func init() {
 		req, _ := http.NewRequest(http.MethodPost, baseUrl, bytes.NewBufferString(bodyLoad))
 		req.Header.Add("Accept", "application/json")
 		req.Header.Add("Content-type", "application/json")
+
 		resp, err := http.DefaultClient.Do(req)
 		if err != nil {
 			log.Errorf("fail getting hhsh url %s: %v", baseUrl, err)
 			ctx.Send(message.Text("抓取结果失败"))
 			return
 		}
+
 		respBody, err := ioutil.ReadAll(resp.Body)
 		respRes := Resp{}
 		err = json.Unmarshal(respBody, &respRes)
@@ -56,6 +58,7 @@ func init() {
 			ctx.Send("解析失败，请联系管理员")
 			return
 		}
+
 		var retSb strings.Builder
 		for _, v := range respRes {
 			retSb.WriteString(fmt.Sprintf(transFormat, v.Name, strings.Join(v.Trans, ",")))
