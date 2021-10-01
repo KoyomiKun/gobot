@@ -4,8 +4,10 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
+	"math/rand"
 	"net/http"
 	"strings"
+	"time"
 
 	log "github.com/sirupsen/logrus"
 	zero "github.com/wdvxdr1123/ZeroBot"
@@ -16,6 +18,8 @@ import (
 const (
 	baseUrl       = "https://api.lolicon.app/setu/v2"
 	msgInfoFormat = "\n%s : %s,"
+
+	sizeKey = "regular"
 )
 
 func init() {
@@ -69,7 +73,13 @@ func parseSetu(ctx *zero.Ctx, r18 bool) {
 		},
 	)
 
-	setu := getSetu(cmd.Args, r18)
+	tags := strings.Split(cmd.Args, " ")
+	setuResp := getSetu(tags, r18)
+	if setuResp.Err != "" {
+		ctx.Send(message.Text(setuResp.Err))
+		return
+	}
+	setu := setuResp.Data
 	if setu == nil {
 		ctx.Send(message.Text("查找图片失败"))
 		return
@@ -79,9 +89,12 @@ func parseSetu(ctx *zero.Ctx, r18 bool) {
 		return
 	}
 
-	topSetu := setu[0]
-	picUrl, ok := topSetu.Urls["original"]
+	rand.Seed(time.Now().UnixNano())
+	topSetu := setu[rand.Intn(len(setu))]
+
+	picUrl, ok := topSetu.Urls[sizeKey]
 	if !ok {
+		log.Errorf("use key %s in dict %v", sizeKey, topSetu.Urls)
 		ctx.Send(message.Text("Key解析失败，请联系管理员处理"))
 		return
 	}
@@ -97,7 +110,8 @@ func parseSetu(ctx *zero.Ctx, r18 bool) {
 		message.Image(picUrl),
 	})
 }
-func getSetu(keyword string, r18 bool) []*Data {
+
+func getSetu(tags []string, r18 bool) *Resp {
 
 	client := &http.Client{}
 
@@ -106,8 +120,13 @@ func getSetu(keyword string, r18 bool) []*Data {
 		log.Errorf("fail getting setu: %v", err)
 		return nil
 	}
+
 	query := req.URL.Query()
-	query.Add("keyword", keyword)
+	for _, orTag := range tags {
+		query.Add("tag", strings.ReplaceAll(orTag, "或", "|"))
+	}
+	query.Add("size", sizeKey)
+	query.Add("num", "100")
 	if r18 {
 		query.Add("r18", "1")
 	} else {
@@ -130,9 +149,40 @@ func getSetu(keyword string, r18 bool) []*Data {
 		return nil
 	}
 
-	if respBody.Err != "" {
-		log.Errorf("fail getting setu: %s", respBody.Err)
-		return nil
+	// TODO: refactoring <01-10-21, komikun> //
+	if len(respBody.Data) == 0 {
+		req, err := http.NewRequest(http.MethodGet, baseUrl, nil)
+		if err != nil {
+			log.Errorf("fail getting setu: %v", err)
+			return nil
+		}
+
+		query := req.URL.Query()
+		query.Add("keyword", tags[0])
+		query.Add("size", sizeKey)
+		query.Add("num", "100")
+		if r18 {
+			query.Add("r18", "1")
+		} else {
+			query.Add("r18", "0")
+		}
+		req.URL.RawQuery = query.Encode()
+
+		resp, err := client.Do(req)
+		if err != nil {
+			log.Errorf("fail getting setu: %v", err)
+			return nil
+		}
+		defer resp.Body.Close()
+
+		respBytes, err := ioutil.ReadAll(resp.Body)
+		err = json.Unmarshal(respBytes, &respBody)
+		if err != nil {
+			log.Errorf("fail unmarshaling setu: %v", err)
+			return nil
+		}
+		log.Debugf("From keyword: %s get %d", tags[0], len(respBody.Data))
 	}
-	return respBody.Data
+
+	return &respBody
 }
