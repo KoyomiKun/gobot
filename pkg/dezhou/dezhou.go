@@ -23,7 +23,7 @@ func init() {
 		}
 
 		switch ctx.Event.Message.String() {
-		case "德州":
+		case ".德州":
 			if _, ok := groupMutex.Load(ctx.Event.GroupID); ok {
 				ctx.Send("该群组已有游戏在进行")
 				return
@@ -51,7 +51,7 @@ func init() {
 					}
 				}
 			}()
-		case "111":
+		case ".111":
 			if v, ok := groupMutex.Load(ctx.Event.GroupID); !ok {
 				ctx.Send(message.Text("请先输入.德州开始游戏"))
 				return
