@@ -9,13 +9,12 @@ import (
 )
 
 var (
-	// value: nil 0 1
-	// 0: wait for players
-	// 1: start game
+	cards      *Cards
 	groupMutex sync.Map
 )
 
 func init() {
+	cards = NewCards()
 	zero.OnCommandGroup([]string{"德州", "111"}).Handle(func(ctx *zero.Ctx) {
 		if !zero.OnlyGroup(ctx) {
 			ctx.Send(message.Text("该功能只有群组可以使用"))
@@ -34,8 +33,8 @@ func init() {
 				<-time.After(time.Second * 30)
 				if v, ok := groupMutex.Load(ctx.Event.GroupID); ok {
 					userSet := v.(map[int64]struct{})
-					if len(userSet) == 0 {
-						ctx.Send("30s无人加入，游戏关闭")
+					if len(userSet) <= 3 {
+						ctx.Send("30s少于4人加入，游戏关闭")
 						groupMutex.Delete(ctx.Event.GroupID)
 					} else {
 						retMsg := message.Message{}
@@ -48,6 +47,10 @@ func init() {
 						ctx.Send(retMsg)
 						groupMutex.Delete(ctx.Event.GroupID)
 						groupMutex.Store(ctx.Event.GroupID, userList)
+						game := NewGame(ctx)
+						groupMutex.Delete(ctx.Event.GroupID)
+						groupMutex.Store(ctx.Event.GroupID, game)
+						game.Start()
 					}
 				}
 			}()
@@ -71,7 +74,49 @@ func init() {
 				}
 			}
 		}
-
 	})
+	zero.OnCommandGroup([]string{"跟", "加20", "溜"}).Handle(func(ctx *zero.Ctx) {
+		if !zero.OnlyGroup(ctx) {
+			ctx.Send(message.Text("该功能只有群组可以使用"))
+			return
+		}
+		gameInterface, ok := groupMutex.Load(ctx.Event.GroupID)
+		if !ok {
+			ctx.Send("请先输入.德州开始游戏")
+			return
+		}
+		switch gameInterface.(type) {
+		case []int64:
+		case map[int64]struct{}:
+			ctx.Send("游戏尚未初始化")
+			return
+		}
 
+		game := gameInterface.(Game)
+		if ctx.Event.UserID != game.WaitedPlayer {
+			return
+		}
+		game.OrderChan <- Order{
+			msg:    ctx.Event.Message.String()[1:],
+			fromQQ: ctx.Event.UserID,
+		}
+	})
+	zero.OnCommandGroup([]string{"当前筹码", "当前明牌"}).Handle(func(ctx *zero.Ctx) {
+		if !zero.OnlyGroup(ctx) {
+			ctx.Send(message.Text("该功能只有群组可以使用"))
+			return
+		}
+		gameInterface, ok := groupMutex.Load(ctx.Event.GroupID)
+		if !ok {
+			ctx.Send("请先输入.德州开始游戏")
+			return
+		}
+		switch gameInterface.(type) {
+		case []int64:
+		case map[int64]struct{}:
+			ctx.Send("游戏尚未初始化")
+			return
+		}
+		// show info
+	})
 }
