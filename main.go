@@ -12,10 +12,10 @@ import (
 	zero "github.com/wdvxdr1123/ZeroBot"
 	"github.com/wdvxdr1123/ZeroBot/driver"
 
-	_ "github.com/Koyomikun/gobot/pkg/dezhou"
 	_ "github.com/Koyomikun/gobot/pkg/hhsh"
 	_ "github.com/Koyomikun/gobot/pkg/searcher"
 	_ "github.com/Koyomikun/gobot/pkg/setu"
+	_ "github.com/Koyomikun/gobot/pkg/texas"
 	_ "github.com/Koyomikun/gobot/pkg/tranlate"
 )
 

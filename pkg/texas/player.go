@@ -1,4 +1,4 @@
-package dezhou
+package texas
 
 import zero "github.com/wdvxdr1123/ZeroBot"
 
