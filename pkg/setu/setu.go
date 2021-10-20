@@ -17,6 +17,7 @@ import (
 
 const (
 	baseUrl       = "https://api.lolicon.app/setu/v2"
+	proxy         = "pixiv.runrab.workers.dev"
 	msgInfoFormat = "\n%s : %s,"
 
 	sizeKey = "regular"
@@ -127,6 +128,7 @@ func getSetu(tags []string, r18 bool) *Resp {
 	}
 	query.Add("size", sizeKey)
 	query.Add("num", "100")
+	query.Add("proxy", proxy)
 	if r18 {
 		query.Add("r18", "1")
 	} else {
@@ -161,6 +163,7 @@ func getSetu(tags []string, r18 bool) *Resp {
 		query.Add("keyword", tags[0])
 		query.Add("size", sizeKey)
 		query.Add("num", "100")
+		query.Add("proxy", proxy)
 		if r18 {
 			query.Add("r18", "1")
 		} else {
